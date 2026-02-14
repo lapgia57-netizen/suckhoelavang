@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Stay Healthy</title>
+    <!-- Add favicon -->
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        header, main, footer {
+            padding: 20px;
+        }
+        header {
+            background-color: #f0f0f0;
+            text-align: center;
+        }
+        main {
+            max-width: 800px;
+            margin: 0 auto;
+            flex: 1;
+        }
+        footer {
+            background-color: #f0f0f0;
+            text-align: center;
+            width: 100%;
+        }
+        #tips-content {
+            min-height: 80px;
+            max-height: 80px;
+            overflow-y: auto;
+            line-height: 1.5;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .footer-links {
+            margin-top: 10px;
+        }
+        .footer-links a {
+            margin: 0 10px;
+            text-decoration: none;
+            color: #007bff;
+        }
+        .footer-links a:hover {
+            text-decoration: underline;
+        }
+        .dmca-badge {
+            margin-top: 10px;
+            display: inline-block;
+        }
+        @media (max-width: 600px) {
+            #tips-content {
+                font-size: 14px;
+            }
+            footer {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>How to Stay Healthy</h1>
+    </header>
+
+    <main>
+        <section id="home">
+            <h2>Welcome</h2>
+            <p>Learn simple and effective ways to maintain a healthy lifestyle with our tips below.</p>
+            <a href="https://bo0tot.org/blockchain_contracts/count.php">The Avengers</a>
+        </section>
+
+        <section id="tips">
+            <h2>Health Tips</h2>
+            <p id="tips-content" aria-live="polite">Loading tips...</p>
+        </section>
+
+        <section id="about">
+            <h2>About This Page</h2>
+            <p>This website provides basic guidance on staying healthy through simple daily habits.</p>
+        </section>
+
+        <section id="contact">
+            <h2>Contact Us</h2>
+            <p>Email: bvaa@iq920.fun</p>
+            <p>Phone: 0879430644</p>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Stay Healthy. All rights reserved.</p>
+        <div class="footer-links">
+            <a href="#" onclick="alert('Browse Downloads: Not available in static HTML version (requires server-side file system access).')">Browse Downloads</a>
+            <a href="#" onclick="alert('Browse Documentation: Not available in static HTML version (requires server-side file system access).')">Browse Documentation</a>
+        </div>
+        <div class="dmca-badge">
+            <a href="//www.dmca.com/Protection/Status.aspx?ID=011c240a-30ef-4ef5-a31c-e8b501dcc602" title="DMCA.com Protection Status" class="dmca-badge">
+                <img src="https://images.dmca.com/Badges/dmca-badge-w100-5x1-03.png?ID=011c240a-30ef-4ef5-a31c-e8b501dcc602" alt="DMCA.com Protection Status" />
+            </a>
+            <script src="https://images.dmca.com/Badges/DMCABadgeHelper.min.js"></script>
+        </div>
+    </footer>
+
+    <script>
+        // Array of health tips (ported from PHP)
+        const health_tips = [
+            "Drinking plenty of water helps keep your body hydrated and improves overall health.",
+            "Regular exercise, such as walking or jogging, boosts your physical and mental well-being.",
+            "Eating a balanced diet with fruits and vegetables provides essential nutrients.",
+            "Getting at least 7-8 hours of sleep each night is crucial for recovery and energy.",
+            "Practicing mindfulness or meditation can reduce stress and improve focus.",
+            "Avoiding processed foods and sugary drinks supports long-term health.",
+            "Regular check-ups with a doctor can catch potential health issues early.",
+            "Staying active with hobbies or sports keeps your body and mind engaged.",
+            "Limiting screen time before bed improves sleep quality.",
+            "Building strong social connections contributes to emotional health."
+        ];
+
+        // Function to generate random text (ported from PHP)
+        function generateRandomText(sentences, num_sentences = 4) {
+            if (!Array.isArray(sentences) || sentences.length === 0) {
+                return "No tips available.";
+            }
+            // Shuffle array
+            const shuffled = [...sentences].sort(() => 0.5 - Math.random());
+            // Take first N sentences and join
+            return shuffled.slice(0, Math.min(num_sentences, shuffled.length)).join(" ");
+        }
+
+        // Function to load tips (client-side equivalent of AJAX)
+        function loadTips() {
+            const randomTips = generateRandomText(health_tips, 4);
+            document.getElementById('tips-content').innerText = randomTips;
+        }
+
+        // Refresh tips every 5 seconds
+        setInterval(loadTips, 5000);
+        // Load on page load
+        window.onload = loadTips;
+    </script>
+</body>
+</html>
