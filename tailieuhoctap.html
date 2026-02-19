@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Quản lý Tài liệu - Admin</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f0f2f5;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+      color: #1a73e8;
+    }
+    .login-form, .admin-panel {
+      display: none;
+    }
+    .login-form.active, .admin-panel.active {
+      display: block;
+    }
+    label {
+      display: block;
+      margin: 12px 0 6px;
+      font-weight: 600;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      box-sizing: border-box;
+    }
+    button {
+      background: #1a73e8;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      margin: 6px 4px 0 0;
+    }
+    button:hover {
+      background: #1557b0;
+    }
+    button.delete {
+      background: #d32f2f;
+    }
+    button.delete:hover {
+      background: #b71c1c;
+    }
+    #message {
+      margin: 16px 0;
+      padding: 12px;
+      border-radius: 6px;
+    }
+    .success { background: #e8f5e9; color: #2e7d32; }
+    .error   { background: #ffebee; color: #c62828; }
+    .doc-item {
+      border: 1px solid #eee;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+      background: #fafafa;
+    }
+    .doc-item h3 {
+      margin: 0 0 10px;
+      color: #1a73e8;
+    }
+    .doc-content {
+      white-space: pre-wrap;
+      margin: 8px 0;
+    }
+    #docList:empty::before {
+      content: "Chưa có tài liệu nào được lưu.";
+      color: #777;
+      display: block;
+      text-align: center;
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Quản lý Tài liệu</h1>
+
+  <!-- Phần đăng nhập -->
+  <div id="loginForm" class="login-form active">
+    <form id="frmLogin">
+      <label for="password">Mật khẩu Admin:</label>
+      <input type="password" id="password" placeholder="Nhập 123456" required />
+      <button type="submit">Đăng nhập</button>
+    </form>
+  </div>
+
+  <!-- Phần quản lý -->
+  <div id="adminPanel" class="admin-panel">
+    <h2>Thêm / Sửa tài liệu</h2>
+    <form id="frmAddDoc">
+      <input type="hidden" id="editKey" /> <!-- Lưu key khi sửa -->
+
+      <label for="title">Tiêu đề tài liệu:</label>
+      <input type="text" id="title" placeholder="Ví dụ: Hợp đồng lao động 2026" required />
+
+      <label for="content">Nội dung:</label>
+      <textarea id="content" rows="8" placeholder="Dán hoặc nhập nội dung tài liệu..." required></textarea>
+
+      <button type="submit" id="btnSave">Lưu tài liệu</button>
+      <button type="button" id="btnCancelEdit" style="display:none; background:#666;">Hủy sửa</button>
+    </form>
+
+    <div id="message"></div>
+
+    <h2>Danh sách tài liệu</h2>
+    <div id="docList"></div>
+
+    <button onclick="logout()">Đăng xuất</button>
+  </div>
+</div>
+
+<!-- Firebase SDK v9+ (modular) -->
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
+  import { getDatabase, ref, push, set, remove, update, onValue } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js';
+
+  const firebaseConfig = {
+    databaseURL: "https://supperdatabase-default-rtdb.firebaseio.com",
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  const ADMIN_PASS = "123456"; // Nên thay bằng cách bảo mật tốt hơn (hash hoặc server-side)
+  let isLoggedIn = false;
+  let unsubscribeDocs = null; // Để hủy listener khi logout
+
+  // ==================== HELPER ====================
+  function showMessage(text, type) {
+    const msgEl = document.getElementById("message");
+    msgEl.textContent = text;
+    msgEl.className = type;
+    setTimeout(() => { msgEl.textContent = ""; msgEl.className = ""; }, 5000);
+  }
+
+  function resetForm() {
+    document.getElementById("frmAddDoc").reset();
+    document.getElementById("editKey").value = "";
+    document.getElementById("btnSave").textContent = "Lưu tài liệu";
+    document.getElementById("btnCancelEdit").style.display = "none";
+  }
+
+  // ==================== ĐĂNG NHẬP ====================
+  document.getElementById("frmLogin").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const pass = document.getElementById("password").value.trim();
+
+    if (pass === ADMIN_PASS) {
+      isLoggedIn = true;
+      document.getElementById("loginForm").classList.remove("active");
+      document.getElementById("adminPanel").classList.add("active");
+      showMessage("Đăng nhập thành công!", "success");
+      listenDocuments(); // Bắt đầu lắng nghe danh sách
+    } else {
+      showMessage("Mật khẩu sai!", "error");
+    }
+  });
+
+  // ==================== LẤNG NGHE DANH SÁCH TÀI LIỆU (realtime) ====================
+  function listenDocuments() {
+    if (unsubscribeDocs) unsubscribeDocs(); // Hủy listener cũ nếu có
+
+    const docsRef = ref(db, "documents");
+    unsubscribeDocs = onValue(docsRef, (snapshot) => {
+      const listEl = document.getElementById("docList");
+      listEl.innerHTML = "";
+
+      if (!snapshot.exists()) return;
+
+      snapshot.forEach((childSnapshot) => {
+        const key = childSnapshot.key;
+        const data = childSnapshot.val();
+
+        const item = document.createElement("div");
+        item.className = "doc-item";
+        item.innerHTML = `
+          <h3>${data.title || "Không có tiêu đề"}</h3>
+          <div class="doc-content">${data.content?.replace(/\n/g, '<br>') || ""}</div>
+          <small>Lưu lúc: ${new Date(data.createdAt).toLocaleString('vi-VN')}</small>
+          <div>
+            <button onclick="editDoc('${key}', '${data.title.replace(/'/g,"\\'")}', \`${data.content.replace(/`/g,"\\`").replace(/\${/g,"\\${")}\`)">Sửa</button>
+            <button class="delete" onclick="deleteDoc('${key}')">Xóa</button>
+          </div>
+        `;
+        listEl.appendChild(item);
+      });
+    }, (err) => {
+      showMessage("Lỗi tải danh sách: " + err.message, "error");
+    });
+  }
+
+  // ==================== THÊM / CẬP NHẬT TÀI LIỆU ====================
+  document.getElementById("frmAddDoc").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!isLoggedIn) return showMessage("Vui lòng đăng nhập!", "error");
+
+    const title   = document.getElementById("title").value.trim();
+    const content = document.getElementById("content").value.trim();
+    const editKey = document.getElementById("editKey").value;
+
+    if (!title || !content) {
+      return showMessage("Vui lòng điền đầy đủ thông tin!", "error");
+    }
+
+    try {
+      const docRef = editKey 
+        ? ref(db, `documents/${editKey}`)
+        : push(ref(db, "documents"));
+
+      const data = {
+        title,
+        content,
+        createdAt: editKey ? (await get(docRef)).val()?.createdAt : Date.now(),
+        updatedAt: Date.now(),
+      };
+
+      if (editKey) {
+        await update(docRef, data);
+        showMessage("Đã cập nhật tài liệu!", "success");
+      } else {
+        await set(docRef, data);
+        showMessage("Tài liệu đã được lưu thành công!", "success");
+      }
+
+      resetForm();
+    } catch (err) {
+      console.error(err);
+      showMessage("Lỗi: " + err.message, "error");
+    }
+  });
+
+  // Hủy sửa
+  document.getElementById("btnCancelEdit").onclick = resetForm;
+
+  // ==================== SỬA TÀI LIỆU ====================
+  window.editDoc = function(key, title, content) {
+    document.getElementById("editKey").value = key;
+    document.getElementById("title").value = title;
+    document.getElementById("content").value = content;
+    document.getElementById("btnSave").textContent = "Cập nhật";
+    document.getElementById("btnCancelEdit").style.display = "inline-block";
+    window.scrollTo(0, 0);
+  };
+
+  // ==================== XÓA TÀI LIỆU ====================
+  window.deleteDoc = async function(key) {
+    if (!confirm("Bạn chắc chắn muốn xóa tài liệu này?")) return;
+
+    try {
+      await remove(ref(db, `documents/${key}`));
+      showMessage("Đã xóa tài liệu!", "success");
+    } catch (err) {
+      showMessage("Lỗi khi xóa: " + err.message, "error");
+    }
+  };
+
+  // ==================== ĐĂNG XUẤT ====================
+  window.logout = function() {
+    if (unsubscribeDocs) unsubscribeDocs();
+    unsubscribeDocs = null;
+
+    isLoggedIn = false;
+    document.getElementById("adminPanel").classList.remove("active");
+    document.getElementById("loginForm").classList.add("active");
+    document.getElementById("frmLogin").reset();
+    document.getElementById("docList").innerHTML = "";
+    showMessage("Đã đăng xuất", "success");
+  };
+</script>
+
+</body>
+</html>
